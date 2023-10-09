@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from pyxlsb import open_workbook as open_xlsb
-
+st.session_state['arquivo_para_baixar'] = False
 
 @st.cache_data
 def baixarPlanilha(df, index=False):
@@ -85,7 +85,8 @@ if st.session_state["ARQUIVOS_TURMAS"]:
                             turma_ver['Turno'] = f'{turma_baixar[-3]}'
                             st.dataframe(turma_ver, use_container_width=True, hide_index=True)
                             turmas_para_baixar.append(turma_ver)
-if arquivos_turmas is not None:
+                    st.session_state['arquivo_para_baixar'] = True
+if st.session_state['arquivo_para_baixar']:
     st.divider()
     turmas_totais = pd.DataFrame(pd.concat(turmas_para_baixar))
     st.write(f"Total de Alunos: {len(turmas_totais)}")
