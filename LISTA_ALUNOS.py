@@ -99,11 +99,15 @@ if st.session_state['arquivo_para_baixar']:
     turmas_totais = turmas_totais.drop(colunas_remover, axis=1)
 
     with st.expander(":red[BAIXAR PLANILHA DE CONTAGEM]"):
-        st.multiselect("Agrupar por", turmas_totais.keys(), key='AGRUPAR_POR_COLUNAS')
+        st.multiselect("Agrupar por", turmas_totais.keys(), key='AGRUPAR_POR_COLUNAS', max_selections=3)
         if st.session_state['AGRUPAR_POR_COLUNAS']:
-            df = turmas_totais.groupby(
+            df = turmas_totais
+            df['Quantidade Alunos'] = ''
+            df = df.groupby(
                 by=st.session_state['AGRUPAR_POR_COLUNAS']
             ).count()
+            colunas = list(df.columns).pop()
+            df = df[colunas]
             st.dataframe(df, use_container_width=True)
             planilha = baixarPlanilha(df, True)
             st.download_button("📥 Baixar Lista de contagem dos alunos", data=planilha,
