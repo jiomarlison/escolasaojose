@@ -89,15 +89,16 @@ if st.session_state["ARQUIVOS_TURMAS"]:
                             st.dataframe(turma_ver, use_container_width=True, hide_index=True)
                             turmas_para_baixar.append(turma_ver)
                     st.session_state['arquivo_para_baixar'] = True
+
 if st.session_state['arquivo_para_baixar']:
     st.divider()
     turmas_totais = pd.DataFrame(pd.concat(turmas_para_baixar))
-    st.write(f"Total de Alunos: {len(turmas_totais)}")
-    colunas_remover = st.multiselect("Selecione as colunas que deseja remover", options=turmas_totais.keys())
+    st.header(f"**Total de Alunos: {len(turmas_totais)}**")
+    colunas_remover = st.multiselect(":red[**Selecione a(s) coluna(s) que deseja remover**]",
+                                     options=turmas_totais.keys())
     turmas_totais = turmas_totais.drop(colunas_remover, axis=1)
-    turmas_totais["Nº"] = [n for n in range(1, len(turmas_totais) + 1)]
-    turmas_totais = turmas_totais.set_index('Nº')
-    with st.expander("Metodos de contagem"):
+
+    with st.expander(":red[BAIXAR PLANILHA DE CONTAGEM]"):
         st.multiselect("Agrupar por", turmas_totais.keys(), key='AGRUPAR_POR_COLUNAS')
         if st.session_state['AGRUPAR_POR_COLUNAS']:
             df = turmas_totais.groupby(
@@ -111,6 +112,31 @@ if st.session_state['arquivo_para_baixar']:
             st.warning("Selecione as colunas adequadas")
 
     st.divider()
-    st.dataframe(turmas_totais, use_container_width=True)
+    colunas_adicionar = st.multiselect(
+        ":green[**Selecione coluna(s) a ser(em) adicionada(s)**]",
+        options=['OBSERVAÇÃO', 'ASSINATURA', 'NOTA 1', 'NOTA 2', 'NOTA 3', 'NOTA 4', 'PROVA', 'MÉDIA']
+    )
+    ordenar_por = st.multiselect(
+        "Ordenar por",
+        options=reversed(turmas_totais.keys()),
+        max_selections=3
+    )
+
+    if colunas_adicionar:
+        turmas_totais[colunas_adicionar] = ''
+    if ordenar_por:
+        turmas_totais = turmas_totais.sort_values(by=ordenar_por)
+
+    turmas_totais["Nº"] = [n for n in range(1, len(turmas_totais) + 1)]
+    turmas_totais = turmas_totais.set_index('Nº')
+    st.data_editor(
+        turmas_totais,
+        use_container_width=True,
+        column_config={
+            'Matrícula': st.column_config.NumberColumn("Matrícula", format="%d")
+        },
+        disabled=True
+    )
     planilha = baixarPlanilha(turmas_totais)
-    st.download_button("📥 Baixar Lista de alunos", data=planilha, file_name="Lista do Alunos Completa.xlsx")
+    st.download_button("📥 Baixar Lista de alunos das turmas selecionadas", data=planilha,
+                       file_name="Lista do Alunos Completa.xlsx")
