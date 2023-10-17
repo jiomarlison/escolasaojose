@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from pyxlsb import open_workbook as open_xlsb
-
+import datetime as dttm
 st.session_state['arquivo_para_baixar'] = False
 
 
@@ -56,6 +56,7 @@ if st.session_state["ARQUIVOS_TURMAS"]:
                 st.dataframe(turma, use_container_width=True, hide_index=True)
     with baixar_turmas:
         turmas_para_baixar = []
+        nome_escola = st.text_input("Digite o nome da escola")
         padrao = st.number_input("Digite um valor padrão para o cabecalho", min_value=0)
         st.multiselect(
             label="Selecione um arquivo",
@@ -131,8 +132,10 @@ if st.session_state['arquivo_para_baixar']:
     if ordenar_por:
         turmas_totais = turmas_totais.sort_values(by=ordenar_por)
 
-    turmas_totais["Nº"] = [n for n in range(1, len(turmas_totais) + 1)]
-    turmas_totais = turmas_totais.set_index('Nº')
+    cabecalho_planilha = list(turmas_totais.keys())
+    cabecalho_planilha = pd.MultiIndex.from_product([[nome_escola], cabecalho_planilha])
+    turmas_totais = pd.DataFrame(columns=cabecalho_planilha, data=turmas_totais.values)
+
     st.data_editor(
         turmas_totais,
         use_container_width=True,
@@ -141,6 +144,6 @@ if st.session_state['arquivo_para_baixar']:
         },
         disabled=True
     )
-    planilha = baixarPlanilha(turmas_totais)
+    planilha = baixarPlanilha(turmas_totais, True)
     st.download_button("📥 Baixar Lista de alunos das turmas selecionadas", data=planilha,
-                       file_name="Lista do Alunos Completa.xlsx")
+                       file_name=f"Lista do Alunos Completa{dttm.datetime.today().strftime('%d.%m.%Y')}.xlsx")
