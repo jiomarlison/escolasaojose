@@ -1,0 +1,122 @@
+import pandas as pd
+import streamlit as st
+st.markdown("CLIQUE NO SIMBOLO :question: DO LADO ***SUPERIOR DIREITO*** DE"
+            " CADA MENU PARA SABER MAIS INFORMAÇÃO SOBRE O QUE ELA FAZ")
+with st.container(border=True):
+    arquivo = st.file_uploader(
+        ":green[FAÇA O UPLOAD DO(S) ARQUIVO(S) COM A(S)TURMA(S)]",
+        type=["XLS", "XLSX"],
+        help="""
+        FAÇA O UPLOAD DO(S) ARQUIVO(S) CONTENDO A(S) TURMA(S)
+        QUE DEJESA JUNTAR EM UM UNICO ARQUIVO.
+        """
+    )
+
+if arquivo is not None:
+    turmas = []
+
+    st.subheader(body="", divider="rainbow")
+    with st.container(border=True):
+        selecao_series = st.multiselect(
+            label=":red[REMOVA AS SÉRIES/TURMAS QUE NÃO QUER NO ARQUIVO FINAL]",
+            options=[series for series in pd.read_excel(arquivo, sheet_name=None).keys()],
+            default=[series for series in pd.read_excel(arquivo, sheet_name=None).keys()],
+            help="""
+            VOCÊ PODE REMOVER OU READICIONAR AS TURMA QUE VAI QUERER, SENDO O MINIMO 1 PARA FUNCIONAR.
+            """
+        )
+
+        with st.container(border=True):
+            Turma, Turno = st.columns(2)
+            with Turma:
+                colunas_turma = st.radio(
+                    ":green[INSERIR COLUNA DE IDENTIFICAÇÃO POR TURMA?]",
+                    options=["SIM", "NÃO"],
+                    horizontal=True,
+                    help="""
+                    SERÁ ADICIONADA UMA COLUNA COM O NOME DA TURMA,
+                    A COLUNA É CRIADA COM BASE NO NOMÉ DA(S) ABA(S) DO ARQUIVO,
+                    SE BASEADO NO(S) NOME(S) DO MENU ACIMA,
+                    NÃO ALTERE O NOME DELAS NO ARQUIVO ORIGINAL PARA MELHOR FUNIONAMENTO.
+                    """
+                )
+            with Turno:
+                colunas_turno = st.radio(
+                    ":green[INSERIR COLUNA DE IDENTIFICAÇÃO POR TURNO?]",
+                    options=["SIM", "NÃO"],
+                    horizontal=True,
+                    help=""":orange[
+                    SERÁ ADICIONADA UMA COLUNA COM O NOME DA TURNO,
+                    A COLUNA É CRIADA COM BASE NO NOMÉ DA(S) ABA(S) DO ARQUIVO,
+                    SE BASEADO NO(S) NOME(S) DO MENU ACIMA,
+                    NÃO ALTERE O NOME DELAS NO ARQUIVO ORIGINAL PARA MELHOR FUNIONAMENTO.
+                    ]"""
+                )
+    st.subheader(body="", divider="rainbow")
+    ajuste_cabecalho = st.number_input(
+        ":blue[AUMENTE O NÚMERO PARA AJUSTAR O CABEÇALHO ADEQUADAMENTE A TABELA]",
+        min_value=0,
+        key=f'pular_linha',
+        step=1,
+        help="""
+        AJUSTE O NÚMERO DIMINUINDO OU AUMENTANDO ATÉ QUE OS NOMES DAS COLUNAS TODAS PREENCHIDAS CORRETAMENTE,
+        NECESSARIO PRA UM RESULTADO FINAL ADEQUADO.
+        """
+    )
+
+    if len(selecao_series) > 0:
+        for turma in pd.read_excel(arquivo, sheet_name=None).keys():
+            if turma in selecao_series:
+                df = pd.DataFrame(
+                    pd.read_excel(
+                        arquivo,
+                        sheet_name=turma,
+                        skiprows=ajuste_cabecalho
+                    )
+                )
+                if colunas_turma == "SIM":
+                    df["Turma"] = f"{str(turma)[-4]}º Ano {str(turma)[-1]}"
+                if colunas_turno == "SIM":
+                    if str(turma)[-3] == "M":
+                        df["Turno"] = "MANHÃ"
+                    elif str(turma)[-3] == "T":
+                        df["Turno"] = "TARDE"
+                    elif str(turma)[-3] == "N":
+                        df["Turno"] = "NOITE"
+
+                if "Matrícula" in df.keys():
+                    df = df.loc[df["Matrícula"] > 0]
+                if "Nome" in df.keys():
+                    df = pd.DataFrame(df).sort_values(by="Nome")
+                turmas.append(df)
+
+        tabela_final = pd.DataFrame(pd.concat([serie for serie in turmas]))
+
+        tabela_final = tabela_final.drop(
+            labels=st.multiselect(
+                    label=":red[SELECIONE A(S) COLUNA(S) QUE DESEJA REMOVER]",
+                    options=tabela_final.keys(),
+                help="""
+                AQUI VOCÊ PODE REMOVER COLUNAS QUE NÃO SERÃO NECESSARIAS NO RESULTADO FINAL.
+                """
+            ),
+            axis=1,
+        )
+
+        st.subheader(body="", divider="rainbow")
+        st.markdown("""
+            ***VOCÊ PODE USAR OS MENUS DO CANTO SUPERIOR DIREITO DA TABELA PARA:*** 
+               - <img width="15" height="15" src="https://img.icons8.com/ios/50/download--v1.png" 
+               alt="download--v1"/> **BAIXAR O ARQUIVO DELA EM FORMATO ***.CSV***.**
+               - 🔎 **PESQUISAR UMA INFORMAÇÃO DENTRO DELA.**
+               - <img width="15" height="15" src="https://img.icons8.com/cotton/64/expand.png" 
+               alt="expand"/> **PREENCHER A TELA INTEIRA COM A TABELA.**
+        """, unsafe_allow_html=True)
+        st.dataframe(
+            tabela_final.set_index("Matrícula") if "Matrícula" in tabela_final.keys() else tabela_final,
+            use_container_width=True
+        )
+    else:
+        st.warning("SELECIONE AO MENOS UMA TURMA")
+else:
+    st.warning("FAÇA O UPLOAD DE UM ARQUIVO PARA COMEÇAR")
