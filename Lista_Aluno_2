@@ -1,5 +1,8 @@
+import datetime
+import io
 import pandas as pd
 import streamlit as st
+
 st.markdown("CLIQUE NO SIMBOLO :question: DO LADO ***SUPERIOR DIREITO*** DE"
             " CADA MENU PARA SABER MAIS INFORMAÇÃO SOBRE O QUE ELA FAZ")
 with st.container(border=True):
@@ -14,6 +17,7 @@ with st.container(border=True):
 
 if arquivo is not None:
     turmas = []
+    contagen_alunos = {}
 
     st.subheader(body="", divider="rainbow")
     with st.container(border=True):
@@ -94,8 +98,8 @@ if arquivo is not None:
 
         tabela_final = tabela_final.drop(
             labels=st.multiselect(
-                    label=":red[SELECIONE A(S) COLUNA(S) QUE DESEJA REMOVER]",
-                    options=tabela_final.keys(),
+                label=":red[SELECIONE A(S) COLUNA(S) QUE DESEJA REMOVER]",
+                options=tabela_final.keys(),
                 help="""
                 AQUI VOCÊ PODE REMOVER COLUNAS QUE NÃO SERÃO NECESSARIAS NO RESULTADO FINAL.
                 """
@@ -103,19 +107,47 @@ if arquivo is not None:
             axis=1,
         )
 
+        if "Turma" in tabela_final.keys() or "Turno" in tabela_final.keys():
+            with st.expander(":red[**CONTAGEN DOS ALUNOS**]"):
+                if "Turma" in tabela_final.keys():
+                    contagen_alunos["ALUNOS POR TURMA"] = tabela_final.groupby(by="Turma")["Turma"].count().to_dict()
+                if "Turno" in tabela_final.keys():
+                    contagen_alunos["ALUNOS POR TURNO"] = tabela_final.groupby(by="Turno")["Turno"].count().to_dict()
+                contagen_alunos["TOTAL DE ALUNOS"] = {"TOTAL": tabela_final["Turma"].count()}
+                st.json(
+                    contagen_alunos
+                )
+                tabela_contagem_alunos = pd.DataFrame(contagen_alunos)
+
         st.subheader(body="", divider="rainbow")
         st.markdown("""
             ***VOCÊ PODE USAR OS MENUS DO CANTO SUPERIOR DIREITO DA TABELA PARA:*** 
                - <img width="15" height="15" src="https://img.icons8.com/ios/50/download--v1.png" 
-               alt="download--v1"/> **BAIXAR O ARQUIVO DELA EM FORMATO ***.CSV***.**
-               - 🔎 **PESQUISAR UMA INFORMAÇÃO DENTRO DELA.**
+               alt="download--v1"/> **BAIXAR O ARQUIVO EM FORMATO ***.CSV***.**
+               - 🔎 **PESQUISAR UMA INFORMAÇÃO.**
                - <img width="15" height="15" src="https://img.icons8.com/cotton/64/expand.png" 
                alt="expand"/> **PREENCHER A TELA INTEIRA COM A TABELA.**
         """, unsafe_allow_html=True)
+
         st.dataframe(
             tabela_final.set_index("Matrícula") if "Matrícula" in tabela_final.keys() else tabela_final,
             use_container_width=True
         )
+
+        output = io.BytesIO()
+        writer = pd.ExcelWriter(output, engine="xlsxwriter")
+        tabela_final.to_excel(writer, index=False, sheet_name="LISTA DE ALUNOS")
+        tabela_contagem_alunos.to_excel(writer, index=True, sheet_name="CONTAGEN ALUNOS")
+
+        writer.close()
+        data_bytes = output.getvalue()
+
+        st.download_button(
+            "BAIXAR PLANILHA COM A LISTA DOS ALUNOS",
+            data=data_bytes,
+            file_name=f"LISTA DE ALUNOS - {datetime.datetime.today().strftime('%d.%m.%Y')}.xlsx"
+        )
+
     else:
         st.warning("SELECIONE AO MENOS UMA TURMA")
 else:
