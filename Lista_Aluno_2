@@ -17,7 +17,7 @@ with st.container(border=True):
 
 if arquivo is not None:
     turmas = []
-    contagen_alunos = {}
+    contagen_alunos = {"Quantidade": {}}
 
     st.subheader(body="", divider="rainbow")
     with st.container(border=True):
@@ -71,6 +71,7 @@ if arquivo is not None:
     if len(selecao_series) > 0:
         for turma in pd.read_excel(arquivo, sheet_name=None).keys():
             if turma in selecao_series:
+
                 df = pd.DataFrame(
                     pd.read_excel(
                         arquivo,
@@ -78,8 +79,10 @@ if arquivo is not None:
                         skiprows=ajuste_cabecalho
                     )
                 )
+                turma = turma.replace("-", "")
                 if colunas_turma == "SIM":
-                    df["Turma"] = f"{str(turma)[-4]}º Ano {str(turma)[-1]}"
+                    df["Turma"] = f"{str(turma)[-3]}º Ano {str(turma)[-1]}"
+                    # df["Turma"] = turma
                 if colunas_turno == "SIM":
                     if str(turma)[-3] == "M":
                         df["Turno"] = "MANHÃ"
@@ -107,69 +110,16 @@ if arquivo is not None:
             axis=1,
         )
 
-        if "Turma" in tabela_final.keys() or "Turno" in tabela_final.keys():
-            with st.expander(":red[**CONTAGEN DOS ALUNOS**]"):
-                if "Turma" in tabela_final.keys():
-                    contagen_alunos["TURMA"] = tabela_final.groupby(by="Turma")["Turma"].count().to_dict()
-                if "Turno" in tabela_final.keys():
-                    contagen_alunos["TURNO"] = tabela_final.groupby(by="Turno")["Turno"].count().to_dict()
-                if "Sexo" in tabela_final.keys():
-                    contagen_alunos["SEXO"] = tabela_final.groupby(by="Sexo")["Sexo"].count().to_dict()
-                if "Raça/Cor" in tabela_final.keys():
-                    contagen_alunos["RAÇA/COR"] = tabela_final.groupby(by="Raça/Cor")["Raça/Cor"].count().to_dict()
+        with st.expander(":red[**CONTAGEN DOS ALUNOS**]"):
+            for coluna in tabela_final.keys():
+                if len(tabela_final.groupby(by=coluna)[coluna].count().to_dict()) < 21:
+                    contagen_alunos["Quantidade"][coluna] = tabela_final.groupby(by=coluna)[coluna].count().to_dict()
 
-                contagen_alunos["TOTAL DE ALUNOS"] = {"TOTAL": tabela_final["Turma"].count()}
-                st.json(
-                    contagen_alunos
-                )
-                tabela_contagem_alunos = pd.DataFrame(contagen_alunos)
-            with st.expander(":red[**GRAFICOS QUANTIDADE DE ALUNOS**]"):
-                st.subheader("TURMA")
-                st.bar_chart(
-                    width=100,
-                    height=250,
-                    data=pd.DataFrame(
-                        contagen_alunos["TURMA"].values(),
-                        index=list(
-                            contagen_alunos["TURMA"].keys()
-                        )
-                    )
-                )
-                st.subheader("TURNO")
-                st.bar_chart(
-                    width=100,
-                    height=250,
-                    data=pd.DataFrame(
-                        contagen_alunos["TURNO"].values(),
-                        index=list(
-                            contagen_alunos["TURNO"].keys()
-                        )
-                    )
-                )
-                st.subheader("SEXO")
-                st.bar_chart(
-                    width=100,
-                    height=250,
-                    data=pd.DataFrame(
-                        contagen_alunos["SEXO"].values(),
-                        index=list(
-                            contagen_alunos["SEXO"].keys()
-                        )
-                    )
-                )
-                st.subheader("RAÇA/COR")
-                st.bar_chart(
-                    width=100,
-                    height=250,
-                    data=pd.DataFrame(
-                        contagen_alunos["RAÇA/COR"].values(),
-                        index=list(
-                            contagen_alunos["RAÇA/COR"].keys()
-                        )
-                    )
-                )
+            st.json(
+                contagen_alunos,
+            )
 
-
+            tabela_contagem_alunos = pd.DataFrame(contagen_alunos)
 
         st.subheader(body="", divider="rainbow")
         st.markdown("""
@@ -189,10 +139,10 @@ if arquivo is not None:
         tabela_final.columns = map(lambda x: str(x).upper(), tabela_final.columns)
 
         output = io.BytesIO()
+        # noinspection PyTypeChecker
         writer = pd.ExcelWriter(output, engine="xlsxwriter")
         tabela_final.to_excel(writer, index=False, sheet_name="LISTA DE ALUNOS")
         tabela_contagem_alunos.to_excel(writer, index=True, sheet_name="CONTAGEN ALUNOS")
-
         writer.close()
         data_bytes = output.getvalue()
 
