@@ -93,57 +93,60 @@ if st.session_state["ARQUIVOS_TURMAS"]:
 
 if st.session_state['arquivo_para_baixar']:
     st.divider()
-    turmas_totais = pd.DataFrame(pd.concat(turmas_para_baixar))
-    st.header(f"**Total de Alunos: {len(turmas_totais)}**")
-    colunas_remover = st.multiselect(":red[**Selecione a(s) coluna(s) que deseja remover**]",
-                                     options=turmas_totais.keys())
-    turmas_totais = turmas_totais.drop(colunas_remover, axis=1)
+    if len(turmas_para_baixar) > 0:
+        turmas_totais = pd.DataFrame(pd.concat(turmas_para_baixar))
+        st.header(f"**Total de Alunos: {len(turmas_totais)}**")
+        colunas_remover = st.multiselect(":red[**Selecione a(s) coluna(s) que deseja remover**]",
+                                         options=turmas_totais.keys())
+        turmas_totais = turmas_totais.drop(colunas_remover, axis=1)
 
-    with st.expander(":red[BAIXAR PLANILHA DE CONTAGEM]"):
-        st.multiselect("Agrupar por", turmas_totais.keys(), key='AGRUPAR_POR_COLUNAS', max_selections=3)
-        if st.session_state['AGRUPAR_POR_COLUNAS']:
-            df = turmas_totais
-            df['Quantidade Alunos'] = ''
-            df = df.groupby(
-                by=st.session_state['AGRUPAR_POR_COLUNAS']
-            ).count()
-            colunas = list(df.columns).pop()
-            df = df[colunas]
-            st.dataframe(df, use_container_width=True)
-            planilha = baixarPlanilha(df, True)
-            st.download_button("📥 Baixar Lista de contagem dos alunos", data=planilha,
-                               file_name="Lista de contagem dos alunos completa.xlsx")
-        else:
-            st.warning("Selecione as colunas adequadas")
+        with st.expander(":red[BAIXAR PLANILHA DE CONTAGEM]"):
+            st.multiselect("Agrupar por", turmas_totais.keys(), key='AGRUPAR_POR_COLUNAS', max_selections=3)
+            if st.session_state['AGRUPAR_POR_COLUNAS']:
+                df = turmas_totais
+                df['Quantidade Alunos'] = ''
+                df = df.groupby(
+                    by=st.session_state['AGRUPAR_POR_COLUNAS']
+                ).count()
+                colunas = list(df.columns).pop()
+                df = df[colunas]
+                st.dataframe(df, use_container_width=True)
+                planilha = baixarPlanilha(df, True)
+                st.download_button("📥 Baixar Lista de contagem dos alunos", data=planilha,
+                                   file_name="Lista de contagem dos alunos completa.xlsx")
+            else:
+                st.warning("Selecione as colunas adequadas")
 
-    st.divider()
-    colunas_adicionar = st.multiselect(
-        ":green[**Selecione coluna(s) a ser(em) adicionada(s)**]",
-        options=['OBSERVAÇÃO', 'ASSINATURA', 'NOTA 1', 'NOTA 2', 'NOTA 3', 'NOTA 4', 'PROVA', 'MÉDIA']
-    )
-    ordenar_por = st.multiselect(
-        "Ordenar por",
-        options=reversed(turmas_totais.keys()),
-        max_selections=3
-    )
+        st.divider()
+        colunas_adicionar = st.multiselect(
+            ":green[**Selecione coluna(s) a ser(em) adicionada(s)**]",
+            options=['OBSERVAÇÃO', 'ASSINATURA', 'NOTA 1', 'NOTA 2', 'NOTA 3', 'NOTA 4', 'PROVA', 'MÉDIA']
+        )
+        ordenar_por = st.multiselect(
+            "Ordenar por",
+            options=reversed(turmas_totais.keys()),
+            max_selections=3
+        )
 
-    if colunas_adicionar:
-        turmas_totais[colunas_adicionar] = ''
-    if ordenar_por:
-        turmas_totais = turmas_totais.sort_values(by=ordenar_por)
+        if colunas_adicionar:
+            turmas_totais[colunas_adicionar] = ''
+        if ordenar_por:
+            turmas_totais = turmas_totais.sort_values(by=ordenar_por)
 
-    cabecalho_planilha = list(turmas_totais.keys())
-    cabecalho_planilha = pd.MultiIndex.from_product([[nome_escola], cabecalho_planilha])
-    turmas_totais = pd.DataFrame(columns=cabecalho_planilha, data=turmas_totais.values)
+        cabecalho_planilha = list(turmas_totais.keys())
+        cabecalho_planilha = pd.MultiIndex.from_product([[nome_escola], cabecalho_planilha])
+        turmas_totais = pd.DataFrame(columns=cabecalho_planilha, data=turmas_totais.values)
 
-    st.data_editor(
-        turmas_totais,
-        use_container_width=True,
-        column_config={
-            'Matrícula': st.column_config.NumberColumn("Matrícula", format="%d")
-        },
-        disabled=True
-    )
-    planilha = baixarPlanilha(turmas_totais, True)
-    st.download_button("📥 Baixar Lista de alunos das turmas selecionadas", data=planilha,
-                       file_name=f"Lista do Alunos Completa{dttm.datetime.today().strftime('%d.%m.%Y')}.xlsx")
+        st.data_editor(
+            turmas_totais,
+            use_container_width=True,
+            column_config={
+                'Matrícula': st.column_config.NumberColumn("Matrícula", format="%d")
+            },
+            disabled=True
+        )
+        planilha = baixarPlanilha(turmas_totais, True)
+        st.download_button("📥 Baixar Lista de alunos das turmas selecionadas", data=planilha,
+                           file_name=f"Lista do Alunos Completa{dttm.datetime.today().strftime('%d.%m.%Y')}.xlsx")
+    else:
+        st.header("Selecione alguma turma para iniciar")
