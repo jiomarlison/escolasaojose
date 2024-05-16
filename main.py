@@ -35,6 +35,7 @@ with open("AlunosTurmasXXX1.zip", "rb") as fp:
         file_name="AlunosTurmasXXX.zip",
         mime="application/zip"
     )
+btn
 
 if st.session_state["ARQUIVOS_TURMAS"]:
     ver_turmas, baixar_turmas = st.tabs(["Ver Turmas", "Baixar Lista das Turmas"])
