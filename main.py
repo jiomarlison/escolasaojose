@@ -22,7 +22,7 @@ def baixarPlanilha(dataframe, index=False):
 
 
 arquivos_turmas = st.file_uploader(
-    "Arquivos das Turmas",
+    "Arquivo das planilhas das turmas",
     accept_multiple_files=True,
     type=['XLS', "XLSX"],
     key="ARQUIVOS_TURMAS"
