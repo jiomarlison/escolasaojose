@@ -157,6 +157,6 @@ if st.session_state['arquivo_para_baixar']:
         )
         planilha = baixarPlanilha(turmas_totais, True)
         st.download_button("📥 Baixar Lista de alunos das turmas selecionadas", data=planilha,
-                           file_name=f"Lista do Alunos Completa{dttm.datetime.today().strftime('%d.%m.%Y')}.xlsx")
+                           file_name=f"Lista do Alunos Completa - {dttm.datetime.today().strftime('%d.%m.%Y')}.xlsx")
     else:
         st.header("Selecione alguma turma para iniciar")
