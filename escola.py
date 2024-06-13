@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
-
+from io import BytesIO
+import datetime as dttm
 st.set_page_config(
     page_title="Format-Plan.",
     page_icon=":material/school:",
@@ -114,7 +115,7 @@ if arquivos:
                 options=[
                     "Observação", "Assinatura",
                     "Nota - 1", "Nota - 2", "Nota - 3", "Nota - 4",
-                    "Atividade", "Média",
+                    "Prova", "Média",
                 ],
                 placeholder="Escolhas aquelas que serão necessarias",
             )
@@ -138,6 +139,35 @@ if arquivos:
             )
     with download_plan:
         st.write("Escolhas o que deseja baixar")
+        alunos_por_turma = df2.groupby(by=["Turma"]).count()["Nome"]
+
+        @st.cache_data
+        def baixarPlanilha(dataframe):
+            output = BytesIO()
+            writer = pd.ExcelWriter(output, engine="xlsxwriter")
+            multiindex = pd.MultiIndex.from_product(
+                [[nome_escola], list(dataframe.columns)],
+            )
+            dataframe = pd.DataFrame(
+                columns=multiindex,
+                data=dataframe.values,
+            )
+            dataframe.to_excel(writer, sheet_name="Inicio", index=True)
+            alunos_por_turma.to_excel(writer, sheet_name="Alunos por Turma")
+            # aluno_turno_sexo.to_excel(writer, sheet_name="Alunos por Sexo e Turno")
+
+            # workbook = writer.book
+            # worksheet = writer.sheets['Sheet1']
+            # format1 = workbook.add_format({'num_format': '0'})
+            # worksheet.set_column('A:A', None, format1)
+            writer.close()
+            processed_data = output.getvalue()
+            return processed_data
+
+
+        planilha = baixarPlanilha(df)
+        st.download_button("📥 Baixar Lista de alunos das turmas selecionadas", data=planilha,
+                           file_name=f"Lista do Alunos Completa - {dttm.datetime.today().strftime('%d.%m.%Y')}.xlsx")
     with graficos:
         st.write("Alguns graficos baseados em quais informações achamos")
         if "Sexo" in df2.columns:
