@@ -88,7 +88,8 @@ if arquivos:
                     if "Data de nascimento" in df_temp.columns:
                         df_temp["Data de nascimento"] = df_temp["Data de nascimento"].astype(pd.StringDtype())
                     if "Nº de classe" in df_temp.columns:
-                        df_temp["Nº de classe"] = pd.to_numeric(df_temp["Nº de classe"].astype("int"), downcast="unsigned")
+                        df_temp["Nº de classe"] = pd.to_numeric(df_temp["Nº de classe"].astype("int"),
+                                                                downcast="unsigned")
                     if "Sexo" in df_temp.columns:
                         df_temp["Sexo"] = df_temp["Sexo"].astype("category")
                     if "Situação" in df_temp.columns:
@@ -96,12 +97,14 @@ if arquivos:
                     if "Raça/Cor" in df_temp.columns:
                         df_temp["Raça/Cor"] = df_temp["Raça/Cor"].astype("category")
                     if "Procedência modalidade/curso" in df_temp.columns:
-                        df_temp["Procedência modalidade/curso"] = df_temp["Procedência modalidade/curso"].astype("category")
+                        df_temp["Procedência modalidade/curso"] = df_temp["Procedência modalidade/curso"].astype(
+                            "category")
                     planilhas.append(df_temp)
         st.divider()
-        df = pd.concat(planilhas) if len(planilhas) > 0 else pd.DataFrame(data={"N/A": [None]})
+        df = pd.concat(planilhas) if len(planilhas) > 0 else pd.DataFrame(data={"N/A": ["Ajuste as informações"]})
         df = df.sort_values(by=["Etapa", "Turma", "Nome"])
         df = df.set_index("Matrícula")
+        df2 = df.copy()
 
         st.subheader("Adição e Remoção de colunas")
         adicionar, remover = st.columns([0.5, 0.5])
@@ -111,12 +114,12 @@ if arquivos:
                 options=[
                     "Observação", "Assinatura",
                     "Nota - 1", "Nota - 2", "Nota - 3", "Nota - 4",
-                    "Média", "Nota Final",
+                    "Atividade", "Média",
                 ],
                 placeholder="Escolhas aquelas que serão necessarias",
             )
             for col_add in colunas_adicionar:
-                df[col_add] = [x for x in range(len(df))]
+                df[col_add] = ["" for x in range(len(df))]
         with remover:
             colunas_remover = st.multiselect(
                 label=":red-background[**Colunas para remover**]",
@@ -137,13 +140,15 @@ if arquivos:
         st.write("Escolhas o que deseja baixar")
     with graficos:
         st.write("Alguns graficos baseados em quais informações achamos")
-        if "Sexo" in df.columns:
-            st.scatter_chart(
-                data=df,
-                x="Sexo",
-                y="Turma",
+        if "Sexo" in df2.columns:
+            # ...
+            df3 = df2.groupby(["Turma", "Sexo"]).count()
+            st.bar_chart(
+                data=df3.reset_index(),
+                x="Turma",
+                y="Etapa",
+                color="Sexo"
             )
 
-        if "Raça/Cor" in df.columns:
+        if "Raça/Cor" in df2.columns:
             ...
-
