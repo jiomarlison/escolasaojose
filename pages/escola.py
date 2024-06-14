@@ -14,7 +14,7 @@ st.title("Mesclar planilhas escolares")
 
 arquivos = None
 planilhas = []
-with st.expander(""):
+with st.expander("Informações Iniciais"):
     nome_escola = st.text_input(
         ":school: **Digite o nome da escola**",
         help="""
