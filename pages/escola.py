@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 import datetime as dttm
+import plotly.express as px
+
 st.set_page_config(
     page_title="Format-Plan.",
     page_icon=":material/school:",
@@ -12,31 +14,32 @@ st.title("Mesclar planilhas escolares")
 
 arquivos = None
 planilhas = []
-nome_escola = st.text_input(
-    ":school: **Digite o nome da escola**",
-    help="""
-    Digite o nome da escola para comecar, este será usado 
-    como cabeçalho no(s) arquivo(s) a serem baixados.\n
-    :red[O nome da escola será posto em maiusculo nos arquivos.]
-    """,
-    key="nome_escola",
-    max_chars=100,
-    placeholder="Nome completo da escola",
-)
-nome_escola = nome_escola.upper()
-if nome_escola:
-    arquivos = st.file_uploader(
-        label="**Planilhas de alunos**",
-        accept_multiple_files=True,
-        type=["XLSX", "XLS", "CSV"],
+with st.expander(""):
+    nome_escola = st.text_input(
+        ":school: **Digite o nome da escola**",
         help="""
-        Aqui você poderá colocar planilha(s) contendo varias abas, 
-        então você poderá escolher abaixo os ajustes delas para depois baixar 
-        um arquivo final.\n
-        :red[**TODAS DEVEM CONTER AS MESMAS COLUNAS E AJUSTES, 
-         CASO CONTRARIO O RESULTADO FINAL NÃO SERÁ UTIL!**]
-        """
+        Digite o nome da escola para comecar, este será usado 
+        como cabeçalho no(s) arquivo(s) a serem baixados.\n
+        :red[O nome da escola será posto em maiusculo nos arquivos.]
+        """,
+        key="nome_escola",
+        max_chars=100,
+        placeholder="Nome completo da escola",
     )
+    nome_escola = nome_escola.upper()
+    if nome_escola:
+        arquivos = st.file_uploader(
+            label="**Planilhas de alunos**",
+            accept_multiple_files=True,
+            type=["XLSX", "XLS", "CSV"],
+            help="""
+            Aqui você poderá colocar planilha(s) contendo varias abas, 
+            então você poderá escolher abaixo os ajustes delas para depois baixar 
+            um arquivo final.\n
+            :red[**TODAS DEVEM CONTER AS MESMAS COLUNAS E AJUSTES, 
+             CASO CONTRARIO O RESULTADO FINAL NÃO SERÁ UTIL!**]
+            """
+        )
 
 if arquivos:
     ajuste_plan, download_plan, graficos = st.tabs(["**Ajuste de planilha**", "**Baixar planilha**", "**Graficos**"])
@@ -103,8 +106,12 @@ if arquivos:
                     planilhas.append(df_temp)
         st.divider()
         df = pd.concat(planilhas) if len(planilhas) > 0 else pd.DataFrame(data={"N/A": ["Ajuste as informações"]})
-        df = df.sort_values(by=["Etapa", "Turma", "Nome"])
-        df = df.set_index("Matrícula")
+        if "Etapa" in df.columns:
+            if "Turma" in df.columns:
+                if "Nome" in df.columns:
+                    df = df.sort_values(by=["Etapa", "Turma", "Nome"])
+        if "Matrícula" in df.columns:
+            df = df.set_index("Matrícula")
         df2 = df.copy()
 
         st.subheader("Adição e Remoção de colunas")
@@ -129,8 +136,6 @@ if arquivos:
                 max_selections=len(df.columns) - 1
             )
             df = df.drop(columns=colunas_remover, axis=1)
-        if len(df.columns) == 1:
-            st.toast("Ao menos 1 coluna deve existir na tabela")
         st.subheader("Visualizar Tabela Final")
         with st.expander("Tabela", expanded=False):
             st.dataframe(
@@ -139,7 +144,11 @@ if arquivos:
             )
     with download_plan:
         st.write("Escolhas o que deseja baixar")
-        alunos_por_turma = df2.groupby(by=["Turma"]).count()["Nome"]
+        if "Turma" in df2.columns:
+            alunos_por_turma = df2.groupby(by=["Turma"]).count()["Nome"]
+        else:
+            alunos_por_turma = df2
+
 
         @st.cache_data
         def baixarPlanilha(dataframe):
@@ -154,12 +163,6 @@ if arquivos:
             )
             dataframe.to_excel(writer, sheet_name="Inicio", index=True)
             alunos_por_turma.to_excel(writer, sheet_name="Alunos por Turma")
-            # aluno_turno_sexo.to_excel(writer, sheet_name="Alunos por Sexo e Turno")
-
-            # workbook = writer.book
-            # worksheet = writer.sheets['Sheet1']
-            # format1 = workbook.add_format({'num_format': '0'})
-            # worksheet.set_column('A:A', None, format1)
             writer.close()
             processed_data = output.getvalue()
             return processed_data
@@ -167,18 +170,59 @@ if arquivos:
 
         planilha = baixarPlanilha(df)
         st.download_button("📥 Baixar Lista de alunos das turmas selecionadas", data=planilha,
-                           file_name=f"Lista do Alunos Completa - {dttm.datetime.today().strftime('%d.%m.%Y')}.xlsx")
+                           file_name=f"Lista do Alunos Completa - {dttm.datetime.today().strftime('%d-%m-%Y')}.xlsx")
     with graficos:
-        st.write("Alguns graficos baseados em quais informações achamos")
-        if "Sexo" in df2.columns:
-            # ...
-            df3 = df2.groupby(["Turma", "Sexo"]).count()
-            st.bar_chart(
-                data=df3.reset_index(),
-                x="Turma",
-                y="Etapa",
-                color="Sexo"
-            )
+        try:
+            st.subheader(f"Total de alunos: {df2['Nome'].count()}")
+            df_graficos = df2
+            df_graficos["Quantidade"] = ''
 
-        if "Raça/Cor" in df2.columns:
-            ...
+            st.plotly_chart(
+                px.bar(
+                    data_frame=df_graficos.groupby(["Turma"]).count()["Quantidade"].reset_index(),
+                    x="Turma",
+                    y="Quantidade",
+                    text_auto=True,
+                    title="Distribuição de alunos por Turma"
+                ),
+            )
+            st.plotly_chart(
+                px.bar(
+                    data_frame=df_graficos.groupby(["Turma", "Sexo"]).count()["Quantidade"].reset_index(),
+                    x="Turma",
+                    y="Quantidade",
+                    color="Sexo",
+                    text_auto=True,
+                    title="Distribuição de alunos por Turma e Sexo"
+                ),
+            )
+            st.plotly_chart(
+                px.bar(
+                    data_frame=df_graficos.groupby(["Raça/Cor"]).count()["Quantidade"].reset_index(),
+                    x="Raça/Cor",
+                    y="Quantidade",
+                    text_auto=True,
+                    title="Distribuição de alunos por Raça/Cor"
+                ),
+            )
+            st.plotly_chart(
+                px.bar(
+                    data_frame=df_graficos.groupby(["Raça/Cor", "Turma"]).count()["Quantidade"].reset_index(),
+                    x="Turma",
+                    y="Quantidade",
+                    color="Raça/Cor",
+                    text_auto=True,
+                    title="Distribuição de alunos por Turma e Raça/Cor"
+                ),
+            )
+            st.plotly_chart(
+                px.bar(
+                    data_frame=df_graficos.groupby(["Turno"]).count()["Quantidade"].reset_index(),
+                    x="Turno",
+                    y="Quantidade",
+                    text_auto=True,
+                    title="Distribuição de alunos por Turno"
+                ),
+            )
+        except Exception:
+            st.write("Algo deu errado, realize os ajustes na tabela.")
