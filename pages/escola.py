@@ -3,6 +3,8 @@ import pandas as pd
 from io import BytesIO
 import datetime as dttm
 import plotly.express as px
+from plotly.offline import plot
+from plotly.subplots import make_subplots
 
 st.set_page_config(
     page_title="Format-Plan.",
@@ -14,7 +16,7 @@ st.title("Mesclar planilhas escolares")
 
 arquivos = None
 planilhas = []
-with st.expander("Informações Iniciais"):
+with st.expander(""):
     nome_escola = st.text_input(
         ":school: **Digite o nome da escola**",
         help="""
@@ -178,51 +180,142 @@ if arquivos:
             df_graficos["Quantidade"] = ''
 
             st.plotly_chart(
-                px.bar(
+                FIG1 := px.bar(
                     data_frame=df_graficos.groupby(["Turma"]).count()["Quantidade"].reset_index(),
                     x="Turma",
                     y="Quantidade",
                     text_auto=True,
-                    title="Distribuição de alunos por Turma"
+                    title="Distribuição de alunos por Turma",
+                    color_discrete_sequence=[
+                        '#636EFA', '#EF553B', '#00CC96', '#AB63FA',
+                        '#FFA15A', '#19D3F3', '#FF6692', '#B6E880',
+                        '#FF97FF', '#FECB52'
+                    ],
                 ),
             )
+            st.download_button(
+                "Baixar imagem do grafico acima",
+                data=FIG1.to_image(format="png"),
+                file_name="Total alunos por Turma.png",
+                mime="image/png"
+            )
+
             st.plotly_chart(
-                px.bar(
+                FIG2 := px.bar(
                     data_frame=df_graficos.groupby(["Turma", "Sexo"]).count()["Quantidade"].reset_index(),
                     x="Turma",
                     y="Quantidade",
                     color="Sexo",
                     text_auto=True,
-                    title="Distribuição de alunos por Turma e Sexo"
+                    title="Distribuição de alunos por Turma e Sexo",
+                    color_discrete_sequence=[
+                        '#636EFA', '#EF553B', '#00CC96', '#AB63FA',
+                        '#FFA15A', '#19D3F3', '#FF6692', '#B6E880',
+                        '#FF97FF', '#FECB52'
+                    ]
                 ),
             )
+            st.download_button(
+                "Baixar imagem do grafico acima",
+                data=FIG2.to_image(format="png"),
+                file_name="Total alunos por Turma e Sexo.png",
+                mime="image/png"
+            )
+
             st.plotly_chart(
-                px.bar(
+                FIG3 := px.bar(
                     data_frame=df_graficos.groupby(["Raça/Cor"]).count()["Quantidade"].reset_index(),
                     x="Raça/Cor",
                     y="Quantidade",
                     text_auto=True,
-                    title="Distribuição de alunos por Raça/Cor"
+                    title="Distribuição de alunos por Raça/Cor",
+                    color_discrete_sequence=[
+                        '#636EFA', '#EF553B', '#00CC96', '#AB63FA',
+                        '#FFA15A', '#19D3F3', '#FF6692', '#B6E880',
+                        '#FF97FF', '#FECB52'
+                    ]
                 ),
             )
+            st.download_button(
+                "Baixar imagem do grafico acima",
+                data=FIG3.to_image(format="png"),
+                file_name="Total alunos por Raça/Cor.png",
+                mime="image/png"
+            )
+
             st.plotly_chart(
-                px.bar(
+                FIG4 := px.bar(
                     data_frame=df_graficos.groupby(["Raça/Cor", "Turma"]).count()["Quantidade"].reset_index(),
                     x="Turma",
                     y="Quantidade",
                     color="Raça/Cor",
                     text_auto=True,
-                    title="Distribuição de alunos por Turma e Raça/Cor"
+                    title="Distribuição de alunos por Turma e Raça/Cor",
+                    color_discrete_sequence=[
+                        '#636EFA', '#EF553B', '#00CC96', '#AB63FA',
+                        '#FFA15A', '#19D3F3', '#FF6692', '#B6E880',
+                        '#FF97FF', '#FECB52'
+                    ]
                 ),
             )
+            st.download_button(
+                "Baixar imagem do grafico acima",
+                data=FIG4.to_image(format="png"),
+                file_name="Total alunos por Turma e Raça/Cor.png",
+                mime="image/png"
+            )
+
             st.plotly_chart(
-                px.bar(
+                FIG5 := px.bar(
                     data_frame=df_graficos.groupby(["Turno"]).count()["Quantidade"].reset_index(),
                     x="Turno",
                     y="Quantidade",
                     text_auto=True,
-                    title="Distribuição de alunos por Turno"
+                    title="Distribuição de alunos por Turno",
+                    color_discrete_sequence=[
+                        '#636EFA', '#EF553B', '#00CC96', '#AB63FA',
+                        '#FFA15A', '#19D3F3', '#FF6692', '#B6E880',
+                        '#FF97FF', '#FECB52'
+                    ]
                 ),
             )
-        except Exception:
+            st.download_button(
+                "Baixar imagem do grafico acima",
+                data=FIG5.to_image(format="png"),
+                file_name="Total alunos por Turno.png",
+                mime="image/png"
+            )
+            st.divider()
+            figuras = [FIG1, FIG2, FIG3, FIG4, FIG5]
+            FIG = make_subplots(
+                rows=len(figuras),
+                cols=1,
+                subplot_titles=("Turma", "Turma e Sexo", "Raça/Cor", "Turma e Raça/Cor", "Turno"),
+
+            )
+            for i, figure in enumerate(figuras):
+                for trace in range(len(figure["data"])):
+                    FIG.append_trace(figure["data"][trace], row=i + 1, col=1)
+            FIG.update_layout(
+                height=2500,
+                width=1250,
+                title_text="Quantidade de alunos",
+                showlegend=False,
+                coloraxis=dict(colorscale='Bluered_r')
+            )
+
+            st.download_button(
+                "Baixar Imagem dos Graficos",
+                data=FIG.to_image(format="png"),
+                file_name="Grafico subplot.png",
+                mime="image/pdf"
+            )
+            st.download_button(
+                "Baixar PDF dos Graficos",
+                data=FIG.to_image(format="pdf"),
+                file_name="Grafico subplot.pdf",
+                mime="application/pdf"
+            )
+
+        except Exception as erro:
             st.write("Algo deu errado, realize os ajustes na tabela.")
